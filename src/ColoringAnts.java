@@ -49,12 +49,24 @@ public class ColoringAnts {
             for(int j = 0; j < numVertices; j++)
                 matriz[j][i] = matriz[i][j];
 
+        for (Vertice v: vertices) {
+            int id = v.getId();
+            int grado = 0;
+            for (int vec: matriz[id]) {
+                if(vec != 0) {
+                    grado++;
+                }
+            }
+            v.setGrado(grado);
+        }
+
     }
 
     private class Vertice {
 
         private int id;
         private int color;
+        private int grado;
 
         public Vertice(int id, int color) {
             this.id = id;
@@ -68,10 +80,22 @@ public class ColoringAnts {
         public int getColor() {
             return color;
         }
+
+        public int getGrado() {
+            return grado;
+        }
+
+        public void setGrado(int grado) {
+            this.grado = grado;
+        }
+
+        public void setColor(int Color) {
+            this.color = color;
+        }
     }
 
     private ArrayList<Vertice> createPorR(int color,boolean p) {
-        ArrayList<Vertice> p = new ArrayList<>();
+        ArrayList<Vertice> pr = new ArrayList<>();
         for(Vertice v: vertices) {
             if(v.getColor() == 0) {//no tiene color
                 int id = v.getId();
@@ -79,28 +103,74 @@ public class ColoringAnts {
                     if(matriz[id][vec] != 0) {//es adyacente
                         Vertice vecino = vertices.get(vec);
                         if(p) {
-                            vecino.getColor()
+                            if(vecino.getColor() != color)
+                                pr.add(vecino);
                         } else {
-
+                            if(vecino.getColor() == color)
+                                pr.add(vecino);
                         }
                     }
                 }
             }
         }
 
-        return p;
+        return pr;
     }
 
-    private int coloreaInicial() {
+    private ArrayList<Vertice> ordenaGrado(ArrayList<Vertice> noOrdenada) {
+        ArrayList<Vertice> ordenada = new ArrayList<>();
+        ordenada.add(noOrdenada.remove(0));
+        while (!noOrdenada.isEmpty()) {
+            Vertice v = noOrdenada.remove(0);
+            int index = 0;
+            for(Vertice v1: ordenada) {
+                if(v.getGrado() > v1.getGrado()) {
+                    ordenada.add(index+1,v);
+                    break;
+                }
+                index++;
+            }
+        }
+        return ordenada;
+    }
+
+    private booelan haySinColor() {
+        for (Vertice v: vertices) {
+            if (v.getColor == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private ArrayList<Vertice> clona(ArrayList<Vertices> aClonar) {
+        ArrayList<Vertice> clon = new ArrayList<>();
+
+    }
+
+    public int coloreaInicial() {
         int k = 1;
-        ArrayList<Vertice> p = new ArrayList<>();
-        ArrayList<Vertice> r = new ArrayList<>();
 
+        while(haySinColor()) {
+            ArrayList<Vertice> p = ordenaGrado(createPorR(k,true));
+            ArrayList<Vertice> r = createPorR(k,false);
 
-        while(!p.isEmpty()) {
-
+            while (!p.isEmpty()) {
+                v = p.remove(p.size()-1);
+                v.setColor(k);
+                p = ordenaGrado(createPorR(k,true));
+                r = createPorR(k,false);
+            }
+            k++;
         }
 
         return k;
+    }
+
+
+    public static void main(String[] args) {
+        ColoringAnts ca = new ColoringAnts();
+        int mejorCantidadColores = ca.coloreaInicial();
+        ArrayList<Vertice> mejorColoracion = ca.clona(vertices);
     }
 }
