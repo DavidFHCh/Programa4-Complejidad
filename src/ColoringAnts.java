@@ -69,6 +69,15 @@ public class ColoringAnts {
 
     }
 
+    private int checkColorsUsed(){
+        ArrayList<Integer> colors = new ArrayList<>();
+        for (Vertice v: vertices) {
+            if(!colors.contains(v.getColor()))
+                colors.add(v.getColor());
+        }
+        return colors.size();
+    }
+
     private class Vertice {
 
         private int id;
@@ -374,14 +383,61 @@ public class ColoringAnts {
         ca.conflictoTotal();
 
         //empieza coso de hormigas
+        ArrayList<Ant> ants = new ArrayList<>();
+        for(int ant = 0; ant < nAnts; ant++) {
+            int random = rand.nextInt(vertices.size());
+            ants.add(new Ant(vertices.get(random),ca));
+        }
 
-
+        int contadorAvCol = 0;
+        int contadorJolt = 0;
+        int contadorBreak = 0;
         for (int ciclo = 0; ciclo < nCiclos; ciclo++) {
             for (int ant = 0; ant < nAnts; ant++) {
+                Ant ant1 = ants.get(ant);
                 for (int move = 0; move < nMovimientos; move++) {
-
+                    ant1.coloreaVertice();
+                    ant1.moverAnt();
                 }
             }
+            ca.conflictoTotal();
+            int k1 = checkColorsUsed();
+
+
+            //terminan las hormigas
+            if(mejorCantidadColores < k1){
+                contadorBreak = 0;
+            }else{
+                contadorBreak++;
+            }
+            if(conflictoTotal == 0 && mejorCantidadColores < k1){
+                coloresDisponibles--;
+                contadorAvCol = 0;
+                contadorJolt = 0;
+
+                mejorCantidadColores = k1;
+                mejorColoracion = ca.clona(vertices);
+            } else {
+                contadorAvCol++;
+                contadorJolt++;
+            }
+
+            if(contadorAvCol == 20) {
+                coloresDisponibles++;
+                contadorAvCol = 0;
+            }
+
+            if(contadorJolt == 10) {
+                coloresDisponibles++;
+                contadorJolt = 0;
+                //hacerJolt
+            }
+
+            if(contadorBreak < 100) {
+                break;
+            }
         }
+
+        //regresa mejorColoracion
     }
 }
