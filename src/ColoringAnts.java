@@ -27,7 +27,7 @@ public class ColoringAnts {
     public ColoringAnts() {
         grafica = new SingleGraph("k-Coloracion.");
         rand = new Random();
-        numVertice = rand.nextInt();
+        numVertice = rand.nextInt(11);
         vertices = new ArrayList<>();
         if(numVertice < 5){//asegurando que la grafica tenga al menos 5 vertices.
             numVertice = 5;
@@ -37,7 +37,6 @@ public class ColoringAnts {
             Vertice v = new Vertice(i,0,this);
             vertices.add(v);
         }
-
         //Llenado de matriz de adyacencias.
         //Aleatoriamente.
         matriz = new int[numVertice][numVertice];
@@ -46,17 +45,19 @@ public class ColoringAnts {
                 if(i == j){
                     matriz[i][j] = 0;
                 }else{
-                    if(rand.nextGaussian() < 0.6){
+                    if(rand.nextDouble() < 0.5){
                         matriz[i][j] = 1;
                         grafica.addEdge(i+"-"+j,i,j);
                     }else{
                         matriz[i][j] = 0;
                     }
                 }
-        for(int i = 0; i < numVertice; i++)
-            for(int j = 0; j < numVertice; j++)
-                matriz[j][i] = matriz[i][j];
 
+
+        for(int i = 0; i < numVertice; i++)
+            for(int j = 0; j < numVertice; j++){
+                matriz[j][i] = matriz[i][j];
+            }
         for (Vertice v: vertices) {
             int id = v.getId();
             int grado = 0;
@@ -68,6 +69,10 @@ public class ColoringAnts {
             v.setGrado(grado);
         }
 
+        for (Vertice v: vertices) {
+            v.vecinos();
+        }
+        //System.out.println("fin");
     }
 
     private void jolt(int availableColors){
@@ -127,7 +132,7 @@ public class ColoringAnts {
             grado = 0;
             conflicto = 0;
             this.ca = ca;
-            vecinos();
+            //vecinos();
         }
 
         public Vertice(int id, int color, int grado,int conflicto,ColoringAnts ca) {
@@ -179,7 +184,7 @@ public class ColoringAnts {
             return new Vertice(id,color,grado,conflicto,ca);
         }
 
-        private void vecinos() {
+        public void vecinos() {
             vecinos = new ArrayList<>();
             for(int vec = 0; vec < ca.matriz[id].length; vec++) {
                 if(matriz[id][vec] != 0) {
@@ -196,40 +201,53 @@ public class ColoringAnts {
 
     private ArrayList<Vertice> createPorR(int color,boolean p) {
         ArrayList<Vertice> pr = new ArrayList<>();
+
         for(Vertice v: vertices) {
+
             if(v.getColor() == 0) {//no tiene color
                 int id = v.getId();
-                for(int vec = 0; vec < matriz[id].length; vec++) {
-                    if(matriz[id][vec] != 0) {//es adyacente
-                        Vertice vecino = vertices.get(vec);
-                        if(p) {
-                            if(vecino.getColor() != color)
-                                pr.add(vecino);
-                        } else {
-                            if(vecino.getColor() == color)
-                                pr.add(vecino);
+                ArrayList<Vertice> vecinos = v.getVecinos();
+
+                boolean todos = true;
+                for(Vertice vec: vecinos) {
+                    if(!p) {
+                        if(vec.getColor() == color){
+                            pr.add(v);
+                            break;
                         }
+                    } else {
+                        if(vec.getColor() == color){
+                            todos = false;
+                            break;
+                        }
+                    }
+                }
+                if (p) {
+
+                    if (todos) {
+                        pr.add(v);
+                        //System.out.println("neta");
+
                     }
                 }
             }
         }
-
+        //System.out.println(pr.size() + " " + p);
         return pr;
     }
 
     private ArrayList<Vertice> ordenaGrado(ArrayList<Vertice> noOrdenada) {
+        //System.out.println("ordenando " + noOrdenada.isEmpty());
         ArrayList<Vertice> ordenada = new ArrayList<>();
-        ordenada.add(noOrdenada.remove(0));
-        while (!noOrdenada.isEmpty()) {
-            Vertice v = noOrdenada.remove(0);
-            int index = 0;
-            for(Vertice v1: ordenada) {
-                if(v.getGrado() > v1.getGrado()) {
-                    ordenada.add(index+1,v);
-                    break;
-                }
-                index++;
+
+        while(!noOrdenada.isEmpty()) {
+            Vertice v = noOrdenada.get(0);
+            for(Vertice v1: noOrdenada) {
+                if(v1.getGrado() < v.getGrado())
+                    v = v1;
             }
+            noOrdenada.remove(v);
+            ordenada.add(v);
         }
         return ordenada;
     }
@@ -259,10 +277,11 @@ public class ColoringAnts {
         while(haySinColor()) {
             ArrayList<Vertice> p = ordenaGrado(createPorR(k,true));
             ArrayList<Vertice> r = createPorR(k,false);
-
+            //System.out.println("coloreando " + p.isEmpty());
             while (!p.isEmpty()) {
                 Vertice v = p.remove(p.size()-1);
                 v.setColor(k);
+                //System.out.println("coloreando " + haySinColor()+ " " + k);
                 p = ordenaGrado(createPorR(k,true));
                 r = createPorR(k,false);
             }
@@ -340,11 +359,18 @@ public class ColoringAnts {
 
         public void moverAnt(){
             ArrayList<Vertice> vecinos = actual.getVecinos();
+            //System.out.println(vecinos.size() + " tam vecinos");
             Vertice dest = actual;
+            int attempts = 0;
+
+            if(vecinos.size() == 0) {
+                return;
+            }
+
             while(tabu.contains(dest)) {
                 int random = ca.rand.nextInt(vecinos.size());
                 Vertice randv = vecinos.get(random);
-                ArrayList<Vertice> vecinos1 = actual.getVecinos();
+                ArrayList<Vertice> vecinos1 = randv.getVecinos();
                 int conflictoMax = 0;
                 for(Vertice v: vecinos1){
                     if(v.getConflicto() > conflictoMax) {
@@ -352,7 +378,13 @@ public class ColoringAnts {
                         dest = v;
                     }
                 }
+                attempts++;
+                if(attempts == 10) {
+                    break;
+                }
             }
+            actual = dest;
+            actual.vecinos();
         }
 
         private void actualizarConflictoVecinos(Vertice v){
@@ -385,6 +417,7 @@ public class ColoringAnts {
     public static void main(String[] args) {
         ColoringAnts ca = new ColoringAnts();
         int k = ca.coloreaInicial();
+
         int mejorCantidadColores = k;
         ArrayList<Vertice> mejorColoracion = ca.clona(ca.vertices);
         int coloresDisponibles = (int)((ca.alpha * ((double)k) + 1.0));
@@ -392,13 +425,16 @@ public class ColoringAnts {
         int nuevaCantidadColores = (int)((ca.gamma * ((double)k) + 1.0));
         ArrayList<Integer> elegidos = new ArrayList<>();
         int index = 1;
+
         while (index <= aModificar) {
             int random = ca.rand.nextInt(aModificar+1);
             while (elegidos.contains(random)) {
                 random = ca.rand.nextInt(aModificar+1);
             }
             elegidos.add(random);
+            index++;
         }
+        //System.out.println("empieza");
         ArrayList<Integer> noElegidos = new ArrayList<>();
         for (int i = 0; i < nuevaCantidadColores; i++){
             if (!elegidos.contains(i))
@@ -436,11 +472,17 @@ public class ColoringAnts {
                 Ant ant1 = ants.get(ant);
                 for (int move = 0; move < ca.nMovimientos; move++) {
                     int random = ca.rand.nextInt(ca.vertices.size());
+
                     Vertice v2 = ca.vertices.get(random);
                     ant1.coloreaVertice(v2,coloresDisponibles);
+                    //System.out.println(move + " move");
                     ant1.moverAnt();
+                    //System.out.println("entra?");
+
                 }
+                    //System.out.println(ant + " ant " + ca.nAnts);
             }
+            //System.out.println("ciclo " + ciclo);
             ca.conflictoGeneral();
             int k1 = ca.checkColorsUsed();
 
@@ -473,12 +515,19 @@ public class ColoringAnts {
                 contadorJolt = 0;
                 ca.jolt(coloresDisponibles);
             }
-
-            if(contadorBreak < 1000) {
+            //System.out.println(ciclo);
+            if(contadorBreak > 1000) {
                 break;
             }
         }
 
         //regresa mejorColoracion
+        for(Vertice v: mejorColoracion) {
+            int ver = v.getId();
+            Node n = ca.grafica.getNode(Integer.toString(ver));
+            n.addAttribute("ui.label", v.getColor());
+        }
+
+        ca.grafica.display();
     }
 }
